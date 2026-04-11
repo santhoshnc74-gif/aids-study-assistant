@@ -1,10 +1,9 @@
-` <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>NeuralDesk</title>
-<link rel="icon" type="image/png"  href="Screenshot 2026-03-22 212522.png"/>
+<title>AI&DS Study Assistant</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet"/>
 <style>
   :root {
@@ -80,27 +79,6 @@
   }
 
   .admin-login-btn:hover { color: var(--accent); border-color: var(--accent); }
-
-  /* ─── MODEL SELECTOR ─── */
-  .model-select {
-    background: var(--card);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-family: 'Syne', sans-serif;
-    cursor: pointer;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-  .model-select:focus, .model-select:hover { border-color: var(--accent); color: var(--accent); }
-  .model-select option { background: var(--card); }
-
-  /* ─── STATUS DOT COLORS ─── */
-  .status-dot.ok   { background: #00ff87; box-shadow: 0 0 8px #00ff87; }
-  .status-dot.warn { background: #ffcc00; box-shadow: 0 0 8px #ffcc00; }
-  .status-dot.err  { background: #ff4444; box-shadow: 0 0 8px #ff4444; }
 
   /* ─── MAIN LAYOUT ─── */
   .app {
@@ -473,9 +451,6 @@
   </div>
   <div class="header-actions">
     <div class="dept-badge">AI &amp; DATA SCIENCE</div>
-    <select class="model-select" id="model-select" title="Ollama Model">
-      <option value="llama3">🤖 llama3</option>
-    </select>
     <button class="admin-login-btn" onclick="openAdminModal()">🔓 Admin</button>
   </div>
 </header>
@@ -692,14 +667,15 @@
 
 <!-- STATUS BAR -->
 <div class="status-bar">
-  <div class="status-dot warn" id="status-dot"></div>
-  <span id="status-text">Checking connection...</span>
+  <div class="status-dot"></div>
+  <span id="status-text">AI Ready · Select a subject to begin</span>
   <span style="margin-left:auto;">AI&DS Dept · Arrear Study Assistant v2.0</span>
 </div>
 
 <script>
   // ─── BACKEND API CONFIG ───
-  const API_BASE = 'http://localhost:3000';
+  const API_BASE = 'http://127.0.0.1:3000';
+
 
   // ─── STATE ───
   let currentSubject = null;
@@ -708,48 +684,6 @@
   let conversationHistory = [];
   let isAdmin = false;
   let adminSessionPass = null;
-
-  // ─── STATUS CHECK & MODEL LOADER ───
-  async function checkStatus() {
-    const dot = document.getElementById('status-dot');
-    const txt = document.getElementById('status-text');
-    try {
-      const resp = await fetch(`${API_BASE}/api/status`);
-      if (!resp.ok) throw new Error('Backend error');
-      const data = await resp.json();
-      if (data.backend && data.ollama) {
-        dot.className = 'status-dot ok';
-        txt.textContent = '✅ Backend · ✅ Ollama · Select a subject to begin';
-        loadModels();
-      } else if (data.backend && !data.ollama) {
-        dot.className = 'status-dot warn';
-        txt.textContent = '✅ Backend · ⚠️ Ollama not running — start with: ollama serve';
-        loadModels();
-      }
-    } catch {
-      dot.className = 'status-dot err';
-      txt.textContent = '❌ Backend offline — run: node server.js in /backend';
-    }
-  }
-
-  async function loadModels() {
-    try {
-      const resp = await fetch(`${API_BASE}/api/ollama/models`);
-      if (!resp.ok) return;
-      const data = await resp.json();
-      const sel = document.getElementById('model-select');
-      if (data.models && data.models.length > 0) {
-        sel.innerHTML = data.models.map(m => `<option value="${m}">🤖 ${m}</option>`).join('');
-      }
-    } catch { /* keep default */ }
-  }
-
-  function getSelectedModel() {
-    return document.getElementById('model-select').value || 'llama3';
-  }
-
-  // Run on page load
-  checkStatus();
 
   // ─── SIDEBAR & ADMIN ───
   function toggleSem(btn, semId) {
@@ -1011,7 +945,7 @@
     try {
       // Create payload that matches standard Open-source chat API (Like Llama 3 running on Ollama default port 11434)
       const payload = {
-        model: getSelectedModel(), // Uses model selected in header dropdown
+        model: 'llama3.2:1b', // Smaller open source model (1.3 GB)
         messages: [
           { role: 'system', content: systemPrompt },
           ...conversationHistory
